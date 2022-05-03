@@ -4,6 +4,7 @@
 package policy
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/hashicorp/go-plugin"
@@ -63,6 +64,7 @@ func (pm *Manager) Init(params *common.ParamStore) error {
 
 	lp, err := common.LoadPlugin(pluginLocaitons, "policystore", storeName, quiet)
 	if err != nil {
+		fmt.Println("policy/manager/Manager/Init call to LoadPlugin failed")
 		return err
 	}
 
@@ -73,18 +75,22 @@ func (pm *Manager) Init(params *common.ParamStore) error {
 	storeParams := common.NewParamStore("test")
 	pdesc, err := pm.Store.GetParamDescriptions()
 	if err != nil {
+		fmt.Println("policy/manager/Manager/Init call to GetParamDescriptions failed")
 		return err
 	}
 
 	if err = storeParams.AddParamDefinitions(pdesc); err != nil {
+		fmt.Println("policy/manager/Manager/Init call to AddParamDefinitions failed")
 		return err
 	}
 
 	if err = storeParams.PopulateFromStringMapString(storeParamMap); err != nil {
+		fmt.Println("policy/manager/Manager/Init call to PopulateFromStringMapString failed")
 		return err
 	}
 
 	if err = pm.Store.Init(storeParams); err != nil {
+		fmt.Println("policy/manager/Manager/Init call to pm.Store.Init failed")
 		pm.Client.Kill()
 		return err
 	}

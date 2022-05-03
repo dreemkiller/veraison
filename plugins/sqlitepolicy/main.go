@@ -51,6 +51,7 @@ func (ps PolicyStore) GetParamDescriptions() (map[string]*common.ParamDescriptio
 func (ps *PolicyStore) Init(params *common.ParamStore) error {
 	dbPath, err := params.TryGetString("dbpath")
 	if err != nil {
+		fmt.Println("sqlitepolicy/PolicyStore Init failed call to TryGetString")
 		return err
 	}
 

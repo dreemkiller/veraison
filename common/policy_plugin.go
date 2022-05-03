@@ -215,7 +215,7 @@ func (p *PolicyEnginePlugin) Appraise(attestation *Attestation, policy *Policy) 
 }
 
 func LoadPolicyEnginePlugin(locations []string, name string) (*PolicyEnginePlugin, error) {
-	lp, err := LoadPlugin(locations, "policyenginge", name, false)
+	lp, err := LoadPlugin(locations, "policyengine", name, false)
 	if err != nil {
 		return nil, err
 	}

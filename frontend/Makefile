@@ -5,8 +5,8 @@ include ../mk/test.mk
 .PHONY: all
 all: verifier
 
-verifier: cmd/veraison/main.go
-	go build -o $@ $<
+verifier:
+	go build -o $@ cmd/veraison/main.go
 
 .PHONY: clean
 clean:

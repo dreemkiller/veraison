@@ -31,7 +31,7 @@ func NewLocalClientParamStore() (*common.ParamStore, error) {
 func PopulateLocalClientParams(store *common.ParamStore) error {
 	return store.AddParamDefinitions(map[string]*common.ParamDescription{
 		"PluginLocations": {
-			Kind:     uint32(reflect.Slice),
+			Kind:     uint32(reflect.String),
 			Path:     "plugin.locations",
 			Required: common.ParamNecessity_REQUIRED,
 		},
@@ -46,6 +46,34 @@ func PopulateLocalClientParams(store *common.ParamStore) error {
 			Required: common.ParamNecessity_REQUIRED,
 		},
 	})
+}
+
+type LocalClientConnector struct {
+}
+
+func (lcc LocalClientConnector) Connect(
+	host string,
+	port int,
+	params map[string]string,
+) (common.ITrustedServicesClient, error) {
+	paramStore, err := NewLocalClientParamStore()
+	if err != nil {
+		fmt.Println("trustedservices/LocalClientConnector Connect NewLocalClientParamStore failed:", err)
+		return nil, err
+	}
+
+	err = paramStore.PopulateFromStringMapString(params)
+	if err != nil {
+		fmt.Println("trustedservices/LocalClientConnector PopulateFromStringMapString  failed:", err)
+		return nil, err
+	}
+
+	var client LocalClient
+
+	err = client.Init(paramStore)
+
+	fmt.Println("trustedservices/LocalClientConnector Connect finished with err:", err)
+	return &client, err
 }
 
 type LocalClient struct {
@@ -64,11 +92,13 @@ func initStore(params *common.ParamStore, basename string) (kvstore.IKVStore, er
 
 	storeConfig, err = params.TryGetStringMap(basename + "KVStoreConfig")
 	if err != nil {
+		fmt.Println("trustedservices/local/initStore TryGetStringMap failed:", err)
 		return nil, err
 	}
 
 	store, err = kvstore.New(storeConfig)
 	if err != nil {
+		fmt.Println("trustedservices/local/initStore kvstore.New failed:", err)
 		return nil, err
 	}
 
@@ -78,20 +108,24 @@ func initStore(params *common.ParamStore, basename string) (kvstore.IKVStore, er
 func (c *LocalClient) Init(params *common.ParamStore) error {
 	var err error
 
-	c.PluginLocations, err = params.TryGetStringSlice("PluginLocations")
+	pluginLocationsCombinedString, err := params.TryGetString("PluginLocations")
 	if err != nil {
+		fmt.Println("trustedservices/local/LocalClient/Init TryGetString failed:", err)
 		return err
 	}
+	c.PluginLocations = strings.Split(pluginLocationsCombinedString, ",")
 
 	c.Schemes = make(map[common.AttestationFormat]*common.SchemePlugin)
 
 	c.TrustAnchorStore, err = initStore(params, "TrustAnchor")
 	if err != nil {
+		fmt.Println("trustedservices/local/LocalClient/Init initStore(TrustAnchor) failed:", err)
 		return err
 	}
 
 	c.EndorsementStore, err = initStore(params, "Endorsement")
 	if err != nil {
+		fmt.Println("trustedservices/local/LocalClient/Init initStore(Endorsement) failed:", err)
 		return err
 	}
 

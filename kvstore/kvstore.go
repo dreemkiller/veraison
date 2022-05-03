@@ -14,6 +14,7 @@ func New(cfg Config) (IKVStore, error) {
 
 	backend, err := cfg.ReadVarString(DirectiveBackend)
 	if err != nil {
+		fmt.Println("kvstore/kvstore/New ReadVarString failed:", err)
 		return nil, errors.New(DirectiveBackend + " directive not found")
 	}
 

@@ -4,6 +4,7 @@
 package verifier
 
 import (
+	"fmt"
 	"reflect"
 
 	"go.uber.org/zap"
@@ -75,6 +76,7 @@ func (v *Verifier) Init(
 	pm common.IPolicyManager,
 	pe common.IPolicyEngine,
 ) error {
+	fmt.Println("verifier/Verifier/Init called with config:", config)
 	v.config = config
 	v.pm = pm
 	v.pe = pe
@@ -86,6 +88,7 @@ func (v *Verifier) Init(
 		v.config.GetStringMapString("VtsParams"),
 	)
 	if err != nil {
+		fmt.Println("verifier/Verifier/Init conn.Connect failed:", err)
 		return err
 	}
 

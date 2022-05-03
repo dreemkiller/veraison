@@ -12,7 +12,7 @@ SUBDIR += provisioning
 
 # At present, the frontend has no tests We need to remove it from the CI
 # testing because it messes up the coverage collection filter.
-SUBDIR := $(filter-out frontend,$(SUBDIR))
+#SUBDIR := $(filter-out frontend,$(SUBDIR))
 
 # At present, the verifier tests do not work, we need to remove it from the CI
 # testing because it messes up the coverage collection filter.

@@ -4,6 +4,7 @@
 package common
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"reflect"
@@ -193,6 +194,7 @@ func (s *ParamStore) PopulateFromMap(m map[string]interface{}) error {
 	for name, desc := range s.Params {
 		value, ok := m[name]
 		if !ok {
+			fmt.Println("common/param/ParamStore/PopulateFromMap did not find param ", name, " in the provided map.")
 			continue
 		}
 
@@ -215,15 +217,18 @@ func (s *ParamStore) PopulateFromMap(m map[string]interface{}) error {
 		case reflect.Map:
 			genVal, err = toStringMap(value)
 		default:
+			fmt.Println("Not attempting to convert map value ", value, ". Using it as-is")
 			genVal, err = value, nil
 		}
 
 		if err != nil {
+			fmt.Println("common/param/ParamStore/PopulateFromMap returning error for field ", name, ":", err)
 			return err
 		}
 
 		s.Data.Fields[name], err = structpb.NewValue(genVal)
 		if err != nil {
+			fmt.Println("common/param/ParamStore/PopulateFromMap structpb.NewValue failed:", err)
 			return err
 		}
 	}
@@ -237,6 +242,7 @@ func (s *ParamStore) PopulateFromStringMapString(sm map[string]string) error {
 		m[k] = v
 	}
 
+	fmt.Println("common/param/ParamStore/PopulateFromStringMapString now we've got a map:", m)
 	return s.PopulateFromMap(m)
 }
 
@@ -521,6 +527,17 @@ func toStringMap(i interface{}) (map[string]interface{}, error) {
 		return out, nil
 	case map[string]interface{}:
 		return t, nil
+	case string:
+		fmt.Println("Now we're cooking with Wesson")
+		fmt.Println("t:", t)
+
+		m := make(map[string]interface{})
+		err := json.Unmarshal([]byte(t), &m)
+		if err != nil {
+			fmt.Println("json.Unmarshal failed:", err)
+			return nil, err
+		}
+		return m, nil
 	default:
 		return nil, fmt.Errorf("cannot convert to map[string]interface{}: %v (%T)", i, i)
 	}
