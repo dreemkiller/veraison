@@ -14,7 +14,7 @@ ifndef CMD
   $(error CMD must be set when including cmd.mk)
 endif
 
-$(CMD): $(SRCS) $(CMD_DEPS) ; go build -o $(CMD)
+$(CMD): ; go build -o $(CMD)
 
 CLEANFILES += $(CMD)
 

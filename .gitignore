@@ -10,3 +10,8 @@ protogen
 *.pb.json.go
 tags
 provisioning/api/mocks/
+*.cbor
+*.bin
+*.der
+cmd/vts/test/veraison-trustanchor.sql
+frontend/verifier

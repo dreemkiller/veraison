@@ -50,8 +50,8 @@ func NewVerifier(pluginDir string, dbPath string, logger *zap.Logger) (*verifier
 	fmt.Println("frontend/NewVerifier vtsParams:", vtsParams)
 	// TODO make configurable
 	verifierParams.SetStringSlice("PluginLocations", pluginLocations)
-	verifierParams.SetString("VtsHost", "")
-	verifierParams.SetString("VtsPort", "")
+	verifierParams.SetString("VtsHost", "vts")
+	verifierParams.SetInt("VtsPort", 50051)
 	verifierParams.SetStringMapString("VtsParams", vtsParams)
 	verifierParams.SetString("dbpath", "doogie")
 
@@ -61,7 +61,7 @@ func NewVerifier(pluginDir string, dbPath string, logger *zap.Logger) (*verifier
 		return nil, err
 	}
 
-	connector := new(trustedservices.LocalClientConnector)
+	connector := new(trustedservices.VTSClientConnector)
 
 	policyManagerParams, err := policy.NewManagerParamStore()
 	if err != nil {
@@ -72,7 +72,7 @@ func NewVerifier(pluginDir string, dbPath string, logger *zap.Logger) (*verifier
 	policyManagerParams.SetStringSlice("PluginLocations", pluginLocations)
 	policyManagerParams.SetString("PolicyStoreName", "sqlite")
 	policyManagerParams.SetStringMapString("PolicyStoreParams", map[string]string{"dbpath": policyDbPath})
-	policyManagerParams.SetString("dbpath", "poop")
+	policyManagerParams.SetString("dbpath", "/opt/veraison/policy.sqlite3")
 
 	pm := policy.NewManager()
 	err = pm.Init(policyManagerParams)

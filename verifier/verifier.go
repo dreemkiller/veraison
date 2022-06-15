@@ -4,8 +4,10 @@
 package verifier
 
 import (
+	"context"
 	"fmt"
 	"reflect"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -64,7 +66,7 @@ func NewVerifier(logger *zap.Logger) (*Verifier, error) {
 
 type Verifier struct {
 	config *common.ParamStore
-	vts    common.ITrustedServicesClient
+	vts    common.VTSClient
 	pm     common.IPolicyManager
 	pe     common.IPolicyEngine
 	logger *zap.Logger
@@ -82,21 +84,27 @@ func (v *Verifier) Init(
 	v.pe = pe
 
 	var err error
-	v.vts, err = conn.Connect(
-		v.config.GetString("VtsHost"),
-		v.config.GetInt("VtsPort"),
-		v.config.GetStringMapString("VtsParams"),
-	)
-	if err != nil {
-		fmt.Println("verifier/Verifier/Init conn.Connect failed:", err)
-		return err
+	for {
+		v.vts, err = conn.Connect(
+			v.config.GetString("VtsHost"),
+			v.config.GetInt("VtsPort"),
+			v.config.GetStringMapString("VtsParams"),
+		)
+		if err != nil {
+			fmt.Println("verifier/Verifier/Init conn.Connect failed:", err)
+			//return err
+		}
+		if err == nil {
+			break
+		}
 	}
 
 	return nil
 }
 
 func (v *Verifier) Close() error {
-	return v.vts.Close()
+	// return v.vts.Close()
+	return nil
 }
 
 func (v *Verifier) Verify(
@@ -104,20 +112,26 @@ func (v *Verifier) Verify(
 ) (*common.AttestationResult, error) {
 	policy, err := v.pm.GetPolicy(int(token.TenantId), token.Format)
 	if err != nil {
+		fmt.Println("Verifier::Verify v.pm.GetPolicy failed with err:", err)
 		return nil, err
 	}
 
-	attestation, err := v.vts.GetAttestation(token)
+	my_context := context.TODO()
+	my_context, _ = context.WithTimeout(my_context, time.Second)
+
+	attestation, err := v.vts.GetAttestation(my_context, token)
 	if err != nil {
+		fmt.Println("Verifier::Verify v.vts.GetAttestation failed with err:", err)
 		return nil, err
 	}
-
+	fmt.Println("Verifier::Verify attestation:", attestation)
 	attestation.Result.RawEvidence = token.Data
 
 	err = v.pe.Appraise(attestation, policy)
 	if err != nil {
+		fmt.Println("Verifier::Verify v.pe.Appraise failed with err:", err)
 		return nil, err
 	}
-
+	fmt.Println("Verifier::Verify completed. Returning attestation.Result and nil")
 	return attestation.Result, nil
 }

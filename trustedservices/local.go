@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	DummyTenantID = "0"
+	DummyTenantID = "1"
 )
 
 // Local VTS client, used by executable that the VTS component is part of. All
@@ -249,16 +249,20 @@ func (c *LocalClient) GetAttestation(token *common.AttestationToken) (*common.At
 		return nil, err
 	}
 
-	ec, err := c.extractEvidence(scheme, token)
+	ec, err := c.extractEvidence(scheme, token) // also checks the signature
 	if err != nil {
 		return nil, err
 	}
 
+	fmt.Println("trustedservices::local::LocalClient::GetAttestation has evidenceContext:", ec)
+	fmt.Println("trustedservices::local::LocalClient::GetAttestation calling EndorsementStore.Get with SoftwareId:", ec.SoftwareId)
 	endorsements, err := c.EndorsementStore.Get(ec.SoftwareId)
 	if err != nil {
-		return nil, err
+		fmt.Println("trustedservices::local::LocalClient::GetAttestation call to get failed:", err)
+		//return nil, err
 	}
 
+	fmt.Println("trustedservices::local::LocalClient::GetAttestation calling scheme.GetAttestation with endorsements:", endorsements)
 	return scheme.GetAttestation(ec, endorsements)
 }
 
@@ -301,6 +305,7 @@ func (c *LocalClient) getSchemePlugin(format common.AttestationFormat) (*common.
 
 	sp, err := common.LoadSchemePlugin(c.PluginLocations, format)
 	if err != nil {
+		fmt.Println("LocalClient/getSchemePlugin LoadSchemePlugin failed:", err)
 		return nil, err
 	}
 
@@ -321,9 +326,10 @@ func (c *LocalClient) extractEvidence(
 	if err != nil {
 		return nil, err
 	}
-
+	fmt.Println("LocalClient::extractEvidence calling TrustAnchorStore.Get with TrustAnchorId:", ec.TrustAnchorId)
 	trustAnchor, err := c.TrustAnchorStore.Get(ec.TrustAnchorId)
 	if err != nil {
+		fmt.Println("LocalClient::extractEvidence Get failed:", err)
 		return nil, err
 	}
 

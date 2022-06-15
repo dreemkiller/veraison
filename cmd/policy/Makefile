@@ -3,8 +3,10 @@
 
 GOPKG := github.com/veraison/cmd/policy
 SRCS := main.go
+CMD := policy
 
+include ../../mk/cmd.mk
 include ../../mk/common.mk
-include ../../mk/lint.mk
+#include ../../mk/lint.mk
 include ../../mk/pkg.mk
 include ../../mk/test.mk

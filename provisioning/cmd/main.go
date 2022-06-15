@@ -16,10 +16,10 @@ import (
 
 // TODO(tho) make these configurable
 var (
-	PluginDir         = "../plugins/bin/"
-	ListenAddr        = "localhost:8888"
+	PluginDir         = "./plugins/bin/"
+	ListenAddr        = ":8888"
 	StoreClientConfig = storeclient.GRPCConfig{
-		"store-server.addr": "dns:127.0.0.1:50051",
+		"store-server.addr": "vts:50051",
 	}
 )
 

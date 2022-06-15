@@ -5,13 +5,15 @@ package main
 
 import (
 	"bytes"
-	"crypto/x509"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"encoding/base64"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
 	"fmt"
+	"log"
 	"net/url"
+	"os"
 	"strings"
 
 	plugin "github.com/hashicorp/go-plugin"
@@ -84,7 +86,7 @@ func (s Scheme) SynthKeysFromSwComponent(tenantID string, swComp *common.Endorse
 	}
 
 	verificationLookupKey := url.URL{
-		Scheme: "psa-iot",
+		Scheme: "psa",
 		Host:   tenantID,
 		Path:   strings.Join(absPath, "/"),
 	}
@@ -112,7 +114,7 @@ func (s Scheme) SynthKeysFromTrustAnchor(tenantID string, ta *common.Endorsement
 	}
 
 	taLookupKey := url.URL{
-		Scheme: "psa-iot",
+		Scheme: "psa",
 		Host:   tenantID,
 		Path:   strings.Join(absPath, "/"),
 	}
@@ -121,16 +123,27 @@ func (s Scheme) SynthKeysFromTrustAnchor(tenantID string, ta *common.Endorsement
 }
 
 func (s Scheme) GetTrustAnchorID(token *common.AttestationToken) (string, error) {
+	file, err := os.OpenFile("scheme_psa.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.SetOutput(file)
+	log.Printf("Hello, world")
+
+	log.Printf("scheme-psa::Scheme::GetTrustAnchorID started with token:%x", token)
 	var psaToken psatoken.PSAToken
 
-	err := psaToken.FromCOSE(token.Data)
+	err = psaToken.FromCOSE(token.Data)
 	if err != nil {
+		log.Println("scheme-psa::Scheme::GetTrustAnchorID FromCOSE failed:", err)
 		return "", err
 	}
 
 	implIDString := base64.StdEncoding.EncodeToString(*psaToken.ImplID)
 	instIDString := base64.StdEncoding.EncodeToString(*psaToken.InstID)
 
+	log.Println("scheme-psa::Scheme::GetTrustAnchorID returning stuff")
 	return fmt.Sprintf("psa://%d/%s/%s", token.TenantId, implIDString, instIDString), nil
 }
 
@@ -138,22 +151,34 @@ func (s Scheme) ExtractEvidence(
 	token *common.AttestationToken,
 	trustAnchor string,
 ) (*common.ExtractedEvidence, error) {
-	block, rest := pem.Decode([]byte(trustAnchor))
-	if block == nil {
-		return nil, errors.New("could not extract trust anchor PEM block")
-	}
+	log.Println("scheme-psa::Scheme::ExtractEvidence received trustAnchor:", trustAnchor)
 
-	if len(rest) != 0 {
-		return nil, errors.New("trailing data found after PEM block")
-	}
+	ta_unmarshalled := make(map[string]interface{})
 
-	if block.Type != "PUBLIC KEY" {
-		return nil, fmt.Errorf("unsupported key type %q", block.Type)
-	}
-
-	pk, err := x509.ParsePKIXPublicKey(block.Bytes)
+	err := json.Unmarshal([]byte(trustAnchor), &ta_unmarshalled)
 	if err != nil {
+		log.Println("scheme-psa::Scheme::ExtractEvidence json.Unmarshal failed:", err)
 		return nil, err
+	}
+
+	contents := ta_unmarshalled["attributes"].(map[string]interface{})
+
+	bytes, err := base64.StdEncoding.DecodeString(contents["psa.iak-pub"].(string))
+	if err != nil {
+		log.Println("Failed to base64 decode string:", err)
+		return nil, fmt.Errorf("Failed to base64 decode string: %s err:%e", contents["psa.iak-pub"].(string), err)
+	}
+
+	x, y := elliptic.Unmarshal(elliptic.P256(), bytes)
+	if x == nil {
+		log.Println("Failed to Unmarshal public key")
+		return nil, fmt.Errorf("Failed to Unmarhsal public key. No other information is available")
+	}
+
+	pk := ecdsa.PublicKey{
+		elliptic.P256(),
+		x,
+		y,
 	}
 
 	var psaToken psatoken.PSAToken
@@ -177,7 +202,7 @@ func (s Scheme) ExtractEvidence(
 
 	implIDString := base64.StdEncoding.EncodeToString(*psaToken.ImplID)
 	extracted.SoftwareID = fmt.Sprintf("psa://%d/%s/", token.TenantId, implIDString)
-
+	log.Println("scheme-psa::ExtractEvidence completed, returning extracted:", extracted)
 	return &extracted, nil
 }
 
@@ -185,7 +210,7 @@ func (s Scheme) GetAttestation(
 	ec *common.EvidenceContext,
 	endorsementsStrings []string,
 ) (*common.Attestation, error) {
-
+	log.Println("plugins::scheme-psa::Scheme::GetAttestation started")
 	attestation := common.Attestation{
 		Evidence: ec,
 		Result:   new(common.AttestationResult),
@@ -195,12 +220,14 @@ func (s Scheme) GetAttestation(
 	for i, e := range endorsementsStrings {
 		var endorsement Endorsements
 		if err := json.Unmarshal([]byte(e), &endorsement); err != nil {
+			log.Println("plugins::scheme-psa::Scheme::GetAttestation json.Unmarshal failed:", err)
 			return nil, fmt.Errorf("could not decode endorsement at index %d: %w", i, err)
 		}
 		endorsements = append(endorsements, endorsement)
 	}
 
 	err := populateAttestationResult(&attestation, endorsements)
+	log.Println("plugins::scheme-psa::Scheme::GetAttestation populateAttestationResult returned:", err)
 
 	return &attestation, err
 }

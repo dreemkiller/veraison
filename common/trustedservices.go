@@ -5,7 +5,7 @@ package common
 
 // ITrustedServicesConnector provides a means of establishing connection to the trusted services component.
 type ITrustedServicesConnector interface {
-	Connect(host string, port int, params map[string]string) (ITrustedServicesClient, error)
+	Connect(host string, port int, params map[string]string) (VTSClient, error)
 }
 
 // ITrustedServicesClient specifies the client interface for the trusted services component.

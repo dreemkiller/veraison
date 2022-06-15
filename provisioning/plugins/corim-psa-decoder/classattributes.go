@@ -33,7 +33,7 @@ func (o *PSAClassAttributes) FromEnvironment(e comid.Environment) error {
 		return fmt.Errorf("could not extract implementation-id from class-id: %w", err)
 	}
 
-	o.ImplID, _ = implID.MarshalJSON()
+	o.ImplID = implID[:]
 
 	if class.Vendor != nil {
 		o.Vendor = *class.Vendor

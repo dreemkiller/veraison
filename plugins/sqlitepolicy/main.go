@@ -109,7 +109,7 @@ func (ps *PolicyStore) GetPolicy(tenantID int, tokenFormat common.AttestationFor
 
 	row := ps.db.QueryRow(
 		"select query_map, rules from policy where tenant_id = ? and token_format = ?",
-		tenantID, tokenFormat.String(),
+		tenantID, "psa", //tokenFormat.String(),
 	)
 	if err := row.Err(); err != nil {
 		return nil, err
